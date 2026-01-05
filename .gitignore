@@ -1,0 +1,27 @@
+
+# Ignore Python virtual environment and cache
+venv/
+__pycache__/
+*.pyc
+
+# Ignore Vercel deployment folder
+.vercel
+
+# Ignore OS-specific files
+.DS_Store
+
+# Ignore temporary data folders
+uploads/
+completed/
+
+# Ignore all large data files by default
+*.pdf
+*.xlsx
+*.csv
+*.zip
+*.textClipping
+
+# --- EXCEPTIONS ---
+# Do NOT ignore the specific example files needed for the website.
+!static/examples/CDAI_BLANK_flanders.pdf
+!static/examples/example.xlsx

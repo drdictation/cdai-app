@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDAI PDF Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px 40px 40px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+        /* Tab styles */
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 25px;
+        }
+        .tab-nav button {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-nav button.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        h1 { color: #1a73e8; text-align: center; margin-bottom: 25px; }
+        /* Instructions & Examples styles */
+        .instructions { background-color: #e8f0fe; border: 1px solid #d2e3fc; border-radius: 8px; padding: 25px; margin-bottom: 20px; }
+        .instructions h2, .instructions h3 { margin-top: 0; margin-bottom: 15px; color: #1967d2; }
+        .instructions ul, .instructions ol { padding-left: 20px; line-height: 1.7; margin-top: 0; }
+        .instructions code { background-color: #dcecfd; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .download-links a {
+            display: inline-block;
+            background-color: #1a73e8;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .download-links a:hover { background-color: #1967d2; }
+        hr { border: none; border-top: 1px solid #dee2e6; margin: 30px 0; }
+        /* Form styles */
+        .form-group { margin-bottom: 25px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #3c4043; }
+        input[type="file"] { display: block; width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box; }
+        input[type="file"]::file-selector-button { background-color: #1a73e8; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        input[type="file"]::file-selector-button:hover { background-color: #1967d2; }
+        .submit-btn { background-color: #28a745; color: white; padding: 15px 25px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: background-color 0.2s; display: flex; justify-content: center; align-items: center; }
+        .submit-btn:disabled { background-color: #cccccc; cursor: not-allowed; }
+        .submit-btn:hover:not(:disabled) { background-color: #218838; }
+        .spinner { display: none; border: 3px solid #f3f3f3; border-top: 3px solid #1a73e8; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; margin-left: 10px; }
+        #status-message { text-align: center; margin-top: 20px; font-weight: 600; }
+        .success { color: #218838; }
+        .error { color: #c82333; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Footer styles */
+        .app-footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 0.9em; color: #6c757d; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CDAI PDF Generator</h1>
+
+        <div class="tab-nav">
+            <button class="tab-link active" onclick="openTab(event, 'generator')">Generator</button>
+            <button class="tab-link" onclick="openTab(event, 'instructions')">Instructions & Examples</button>
+        </div>
+
+        <!-- Generator Tab -->
+        <div id="generator" class="tab-content active">
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="data_file">1. Select Data File (.csv or .xlsx)</label>
+                    <input type="file" id="data_file" name="data_file" accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
+                </div>
+                <div class="form-group">
+                    <label for="template_files">2. Select All Blank PDF Templates</label>
+                    <input type="file" id="template_files" name="template_files" accept=".pdf" multiple required>
+                </div>
+                <button type="submit" class="submit-btn" id="submit-button">
+                    <span id="button-text">Generate PDFs</span>
+                    <div class="spinner" id="spinner"></div>
+                </button>
+            </form>
+            <div id="status-message"></div>
+        </div>
+
+        <!-- Instructions & Examples Tab -->
+        <div id="instructions" class="tab-content">
+            <div class="instructions">
+                <h2>How to Use This Tool</h2>
+                <p>This tool automates the process of filling out CDAI PDF forms for Medicare/PBS applications. Follow the steps below carefully to ensure your files are processed correctly.</p>
+                <h3>Step 1: Prepare Your Data File</h3>
+                <p>Your patient data must be in an Excel (<code>.xlsx</code>) or CSV (<code>.csv</code>) file. The first row must be a header row with the columns: <code>firstname</code>, <code>lastname</code>, <code>Birthdate</code>, <code>Medicare number</code>, <code>Height</code>, Weight, `Infusion location (must include hospital provider number)`, and `gastroenterologist`.</p>
+                <h3>Step 2: Name Your Blank PDF Templates</h3>
+                <p>For each gastroenterologist, you need a corresponding blank CDAI form in PDF format. The file MUST be named using the doctor's last name.</p>
+                <p>The format is `CDAI_BLANK_Lastname.pdf`.</p>
+                <h3>Step 3: Generate & Check Results</h3>
+                <p>Use the tool in the "Generator" tab. A `.zip` file will be downloaded containing the filled PDFs and a `processing_report.txt` file that details which rows succeeded and which were skipped (and why).</p>
+            </div>
+
+            <h3>Download Blank Templates</h3>
+            <p>Use these files as a starting point for your own data and forms.</p>
+            <div class="download-links">
+                <a href="{{ url_for('download_example', filename='blank.xlsx') }}" download>Download Blank Data Template (Excel)</a>
+                <a href="{{ url_for('download_example', filename='CDAI_BLANK.pdf') }}" download>Download Blank PDF Template</a>
+            </div>
+
+            <hr>
+
+            <h3>Download Filled Examples</h3>
+            <p>You can download these files to see a working example of the correct format.</p>
+            <div class="download-links">
+                <a href="{{ url_for('download_example', filename='example.xlsx') }}" download>Download Example Data (Excel)</a>
+                <a href="{{ url_for('download_example', filename='CDAI_BLANK_flanders.pdf') }}" download>Download Example PDF Template</a>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <p>This tool is created by Dr. Chamara Basnayake, in collaboration with the IBD nursing team at St. Vincent's Hospital Melbourne.</p>
+            <p>It is provided free of charge for use by all IBD units across Australia to help streamline patient care.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- Tab Navigation ---
+        function openTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; }
+            tablinks = document.getElementsByClassName("tab-link");
+            for (i = 0; i < tablinks.length; i++) { tablinks[i].className = tablinks[i].className.replace(" active", ""); }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // --- Form Submission ---
+        const form = document.getElementById('upload-form');
+        const submitButton = document.getElementById('submit-button');
+        const buttonText = document.getElementById('button-text');
+        const spinner = document.getElementById('spinner');
+        const statusMessage = document.getElementById('status-message');
+
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            submitButton.disabled = true;
+            buttonText.textContent = 'Processing...';
+            spinner.style.display = 'block';
+            statusMessage.textContent = '';
+            statusMessage.className = '';
+            const formData = new FormData(form);
+            try {
+                const response = await fetch('/process', { method: 'POST', body: formData });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const filenameHeader = response.headers.get('Content-Disposition');
+                    let filename = 'completed_pdfs.zip';
+                    if (filenameHeader) {
+                        const parts = filenameHeader.split('filename=');
+                        if (parts.length > 1) { filename = parts[1].split(';')[0].replace(/"/g, ''); }
+                    }
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    statusMessage.textContent = 'Success! Check the processing_report.txt inside the downloaded .zip file for details.';
+                    statusMessage.className = 'success';
+                } else {
+                    const errorText = await response.text();
+                    statusMessage.textContent = `Error: ${errorText}`;
+                    statusMessage.className = 'error';
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                statusMessage.textContent = 'An unexpected error occurred. Please try again.';
+                statusMessage.className = 'error';
+            } finally {
+                submitButton.disabled = false;
+                buttonText.textContent = 'Generate PDFs';
+                spinner.style.display = 'none';
+            }
+        });
+    </script>
+
+</body>
+</html>
