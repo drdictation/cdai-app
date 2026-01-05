@@ -95,9 +95,13 @@ def process_files():
     # template_files = request.files.getlist('template_files') # Removed requirement for upload
     
     # Use Hardcoded Local Template
-    LOCAL_TEMPLATE_PATH = os.path.abspath("BLANK_CDAI_APP_DEC-25.pdf")
+    # Robustly find file relative to this script, not CWD
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    LOCAL_TEMPLATE_PATH = os.path.join(BASE_DIR, "BLANK_CDAI_APP_DEC-25.pdf")
+    
     if not os.path.exists(LOCAL_TEMPLATE_PATH):
-        return "Server Error: Default PDF template not found.", 500
+        app.logger.error(f"Template not found at: {LOCAL_TEMPLATE_PATH}")
+        return f"Server Error: Default PDF template not found at {LOCAL_TEMPLATE_PATH}", 500
 
     if data_file.filename == '':
         return "No selected file", 400

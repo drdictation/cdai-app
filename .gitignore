@@ -25,3 +25,5 @@ completed/
 # Do NOT ignore the specific example files needed for the website.
 !static/examples/CDAI_BLANK_flanders.pdf
 !static/examples/example.xlsx
+!BLANK_CDAI_APP_DEC-25.pdf
+
