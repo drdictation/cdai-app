@@ -8,8 +8,9 @@ from flask import Flask, request, render_template, after_this_request, send_file
 from werkzeug.utils import secure_filename
 
 # --- Configuration ---
-UPLOAD_FOLDER = 'uploads'
-COMPLETED_FOLDER = 'completed'
+# Vercel requires writing to /tmp
+UPLOAD_FOLDER = '/tmp/uploads'
+COMPLETED_FOLDER = '/tmp/completed'
 STATIC_FOLDER = 'static'
 
 app = Flask(__name__)
