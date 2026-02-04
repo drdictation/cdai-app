@@ -93,16 +93,16 @@ def process_files():
         return "Missing data file", 400
     
     data_file = request.files['data_file']
-    # template_files = request.files.getlist('template_files') # Removed requirement for upload
+    template_files = request.files.getlist('template_files')
     
-    # Use Hardcoded Local Template
+    # Default template as fallback
     # Robustly find file relative to this script, not CWD
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    LOCAL_TEMPLATE_PATH = os.path.join(BASE_DIR, "BLANK_CDAI_APP_DEC-25.pdf")
+    DEFAULT_TEMPLATE_PATH = os.path.join(BASE_DIR, "BLANK_CDAI_APP_DEC-25.pdf")
     
-    if not os.path.exists(LOCAL_TEMPLATE_PATH):
-        app.logger.error(f"Template not found at: {LOCAL_TEMPLATE_PATH}")
-        return f"Server Error: Default PDF template not found at {LOCAL_TEMPLATE_PATH}", 500
+    if not os.path.exists(DEFAULT_TEMPLATE_PATH):
+        app.logger.error(f"Default template not found at: {DEFAULT_TEMPLATE_PATH}")
+        return f"Server Error: Default PDF template not found at {DEFAULT_TEMPLATE_PATH}", 500
 
     if data_file.filename == '':
         return "No selected file", 400
@@ -117,10 +117,23 @@ def process_files():
     data_path = os.path.join(session_upload_folder, data_filename)
     data_file.save(data_path)
 
-    # Copy template to session folder
-    template_filename = "template.pdf"
-    session_template_path = os.path.join(session_upload_folder, template_filename)
-    shutil.copy(LOCAL_TEMPLATE_PATH, session_template_path)
+    # Save uploaded templates and build a lookup dictionary by doctor last name
+    # Expected filename format: CDAI_BLANK_Lastname.pdf or any name containing the doctor's last name
+    template_lookup = {}
+    for tpl_file in template_files:
+        if tpl_file and tpl_file.filename:
+            tpl_filename = secure_filename(tpl_file.filename)
+            tpl_path = os.path.join(session_upload_folder, tpl_filename)
+            tpl_file.save(tpl_path)
+            # Extract doctor name from filename (case-insensitive)
+            # e.g., "CDAI_BLANK_Smith.pdf" -> "smith"
+            name_part = os.path.splitext(tpl_filename)[0].lower()
+            template_lookup[name_part] = tpl_path
+            app.logger.info(f"Uploaded template: {tpl_filename} -> key: {name_part}")
+    
+    # Copy default template to session folder as fallback
+    default_session_template = os.path.join(session_upload_folder, "default_template.pdf")
+    shutil.copy(DEFAULT_TEMPLATE_PATH, default_session_template)
 
     ext = os.path.splitext(data_filename)[1].lower()
     df = pd.read_csv(data_path) if ext == '.csv' else pd.read_excel(data_path)
@@ -136,7 +149,8 @@ def process_files():
 
     processing_log.append("--- CDAI PDF Processing Report ---")
     processing_log.append(f"Data file: {data_filename}")
-    processing_log.append(f"Using Default Template: {LOCAL_TEMPLATE_PATH}")
+    processing_log.append(f"Uploaded templates: {list(template_lookup.keys()) if template_lookup else 'None'}")
+    processing_log.append(f"Default template: {DEFAULT_TEMPLATE_PATH}")
     processing_log.append("\n---\n")
 
     for index, row in df.iterrows():
@@ -144,7 +158,19 @@ def process_files():
         patient_name = f"{data.get('firstname', '')} {data.get('lastname', 'N/A')}"
         row_identifier = f"Row {index + 2} (Patient: {patient_name})"
 
-        # Skipped Gastro check since we use one template
+        # Get gastroenterologist name to match with uploaded template
+        gastro = str(data.get('gastroenterologist', '')).strip().lower()
+        
+        # Find matching template: check if any template filename contains the gastro name
+        matched_template = None
+        for tpl_key, tpl_path in template_lookup.items():
+            if gastro and gastro in tpl_key:
+                matched_template = tpl_path
+                break
+        
+        # Use matched template or fall back to default
+        template_to_use = matched_template if matched_template else default_session_template
+        template_source = "uploaded" if matched_template else "default"
         
         patient_lastname = data.get('lastname', 'unknown_lastname')
         patient_firstname = data.get('firstname', 'unknown_firstname')
@@ -152,7 +178,7 @@ def process_files():
         out_pdf = os.path.join(session_completed_folder, filename)
 
         try:
-            pages = split_pdf(session_template_path, session_upload_folder)
+            pages = split_pdf(template_to_use, session_upload_folder)
             filled_pages = []
             
             # UPDATED COORDINATES (X, Y)
@@ -180,7 +206,7 @@ def process_files():
                 if os.path.exists(p): os.remove(p)
             
             generated_files.append(out_pdf)
-            log_entry = f"SUCCESS: {row_identifier} -> Generated {filename}"
+            log_entry = f"SUCCESS: {row_identifier} -> Generated {filename} (template: {template_source})"
             processing_log.append(log_entry)
 
         except Exception as e:
